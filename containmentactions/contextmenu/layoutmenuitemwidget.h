@@ -20,6 +20,7 @@ class LayoutMenuItemWidget : public QWidget {
 public:
     LayoutMenuItemWidget(QAction* action, QWidget *parent);
 
+    QSize sizeHint() const override;
     QSize minimumSizeHint() const override;
     void paintEvent(QPaintEvent* e) override;
 

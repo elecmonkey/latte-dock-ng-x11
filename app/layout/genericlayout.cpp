@@ -737,6 +737,18 @@ void GenericLayout::addContainment(Plasma::Containment *containment)
     }
 
     if (containmentInLayout) {
+        // Plasma::Containment::restore() loads containmentActions from
+        // corona->config()'s top-level [ActionPlugins][<type>] group, but on
+        // Latte's per-layout corona config that section is serialized away
+        // on save and never re-populated, so right-click on the dock loses
+        // its menu after the first save cycle. Re-assert the default mapping
+        // whenever a containment is wired up to this layout, so it's always
+        // present in the live containment regardless of on-disk state.
+        if (!containment->containmentActions().contains(QStringLiteral("RightButton;NoModifier"))) {
+            containment->setContainmentActions(QStringLiteral("RightButton;NoModifier"),
+                                               QStringLiteral("org.kde.latte.contextmenu"));
+        }
+
         if (!blockAutomaticLatteViewCreation()) {
             addView(containment);
         } else {

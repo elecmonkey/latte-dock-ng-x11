@@ -547,6 +547,27 @@ inline void ensureUserLocalQmlImportPaths(int argc, char **argv)
         prependEnvironmentPath("QML_IMPORT_PATH", candidate);
         prependEnvironmentPath("QT_QML_IMPORT_PATH", candidate);
     }
+
+    // Containmentactions plugins (e.g. org.kde.latte.contextmenu) are .so
+    // files under <prefix>/lib*/plugins/plasma/containmentactions/. The
+    // user-local install puts them in ~/.local/lib*/plugins, which Qt
+    // doesn't search by default — so Plasma's PluginLoader silently falls
+    // back to the system .so (or fails to find anything) and right-click
+    // on the dock loses its menu. Prepend the user-local plugin dirs.
+    const QStringList pluginCandidates{
+        userLocalPath + QStringLiteral("/lib/plugins"),
+        userLocalPath + QStringLiteral("/lib64/plugins")
+    };
+
+    for (const QString &candidate : pluginCandidates) {
+        const QFileInfo info(candidate);
+
+        if (!info.exists() || !info.isDir()) {
+            continue;
+        }
+
+        prependEnvironmentPath("QT_PLUGIN_PATH", candidate);
+    }
 }
 
 inline void ensureKdeSessionEnvironment()

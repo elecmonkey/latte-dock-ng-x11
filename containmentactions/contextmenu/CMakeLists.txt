@@ -8,6 +8,17 @@ set(contextmenu_SRCS
 
 add_library(plasma_containmentactions_lattecontextmenu MODULE ${contextmenu_SRCS})
 
+# Plasma's PluginLoader looks up containmentactions plugins by relative path
+# "plasma/containmentactions/<KPlugin.Id>", so the installed .so name must
+# equal the metadata Id (org.kde.latte.contextmenu). Other built-in
+# containmentactions in Plasma (org.kde.contextmenu.so, org.kde.applauncher.so)
+# follow the same convention. Without this rename Plasma silently fails to
+# load the plugin and right-click on the dock has no menu.
+set_target_properties(plasma_containmentactions_lattecontextmenu PROPERTIES
+    OUTPUT_NAME "org.kde.latte.contextmenu"
+    PREFIX ""
+)
+
 target_link_libraries(plasma_containmentactions_lattecontextmenu
                         Qt6::DBus
                         Qt6::Widgets

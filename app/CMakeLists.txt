@@ -55,6 +55,14 @@ ecm_add_qtwayland_client_protocol(lattedock-app_SRCS
     BASENAME kde-primary-output-v1
 )
 
+# Plasma 6 KWin no longer advertises kde_primary_output_v1; kde_output_order_v1
+# replaces it (compositor sends the desktop output order; first entry is the
+# logical primary). Bind both so we work on old and new sessions.
+ecm_add_qtwayland_client_protocol(lattedock-app_SRCS
+    PROTOCOL ${PLASMA_WAYLAND_PROTOCOLS_DIR}/kde-output-order-v1.xml
+    BASENAME kde-output-order-v1
+)
+
 add_executable(latte-dock-ng ${lattedock-app_SRCS})
 
 include(FakeTarget.cmake)

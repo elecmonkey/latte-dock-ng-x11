@@ -12,6 +12,7 @@
 #include <QScreen>
 
 #include "qwayland-kde-primary-output-v1.h"
+#include "qwayland-kde-output-order-v1.h"
 #include <KWayland/Client/connection_thread.h>
 #include <KWayland/Client/registry.h>
 
@@ -32,6 +33,40 @@ public:
 
 Q_SIGNALS:
     void primaryOutputChanged(const QString &outputName);
+};
+
+// Plasma 6 KWin advertises kde_output_order_v1 instead of the legacy
+// kde_primary_output_v1. The compositor sends a sequence of `output(name)`
+// events followed by `done`; the first name in the sequence is the logical
+// primary output (kscreen's "priority 1").
+class WaylandOutputOrder : public QObject, public QtWayland::kde_output_order_v1
+{
+    Q_OBJECT
+public:
+    WaylandOutputOrder(struct ::wl_registry *registry, int id, int version, QObject *parent)
+        : QObject(parent)
+        , QtWayland::kde_output_order_v1(registry, id, version)
+    {
+    }
+
+    void kde_output_order_v1_output(const QString &outputName) override
+    {
+        m_pending.append(outputName);
+    }
+
+    void kde_output_order_v1_done() override
+    {
+        if (!m_pending.isEmpty()) {
+            Q_EMIT primaryOutputChanged(m_pending.first());
+        }
+        m_pending.clear();
+    }
+
+Q_SIGNALS:
+    void primaryOutputChanged(const QString &outputName);
+
+private:
+    QStringList m_pending;
 };
 
 PrimaryOutputWatcher::PrimaryOutputWatcher(QObject *parent)
@@ -71,15 +106,23 @@ void PrimaryOutputWatcher::setupRegistry()
     m_primaryOutputName = qGuiApp->primaryScreen()->name();
     m_registry = new KWayland::Client::Registry(this);
     connect(m_registry, &KWayland::Client::Registry::interfaceAnnounced, this, [this](const QByteArray &interface, quint32 name, quint32 version) {
-        if (interface == WaylandPrimaryOutput::interface()->name) {
-            auto m_outputManagement = new WaylandPrimaryOutput(m_registry->registry(), name, version, this);
-            connect(m_outputManagement, &WaylandPrimaryOutput::primaryOutputChanged, this, [this](const QString &outputName) {
-                m_primaryOutputWayland = outputName;
-                // Only set the outputName when there's a QScreen attached to it
-                if (screenForName(outputName)) {
-                    setPrimaryOutputName(outputName);
-                }
-            });
+        // Both protocols ultimately call setPrimaryOutputName via the same
+        // lambda below. Plasma 6 KWin only ships kde_output_order_v1; older
+        // sessions still have kde_primary_output_v1.
+        auto applyPrimary = [this](const QString &outputName) {
+            m_primaryOutputWayland = outputName;
+            // Only set the outputName when there's a QScreen attached to it
+            if (screenForName(outputName)) {
+                setPrimaryOutputName(outputName);
+            }
+        };
+
+        if (interface == WaylandOutputOrder::interface()->name) {
+            auto outputOrder = new WaylandOutputOrder(m_registry->registry(), name, version, this);
+            connect(outputOrder, &WaylandOutputOrder::primaryOutputChanged, this, applyPrimary);
+        } else if (interface == WaylandPrimaryOutput::interface()->name) {
+            auto primaryOutput = new WaylandPrimaryOutput(m_registry->registry(), name, version, this);
+            connect(primaryOutput, &WaylandPrimaryOutput::primaryOutputChanged, this, applyPrimary);
         }
     });
 

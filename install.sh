@@ -17,6 +17,7 @@ l10n_branch=""
 preclean_install="true"
 purge_user_data="false"
 install_mode="auto"   # auto | user | system
+build_jobs=""         # empty = cmake's default (nproc)
 
 declare -a user_homes=()
 
@@ -60,11 +61,15 @@ Build options:
   --translations | --translations-stable
   --clean | --no-clean      (default: --clean)
   --purge-user-data         Wipe user config/cache on clean
+  --jobs N | -jN | --jobs=N Cap parallel compile jobs (default: cmake's nproc).
+                            Use a small value on memory-constrained hosts to
+                            avoid OOM (each clang/g++ peaks at 1-2 GiB).
 
 Examples:
   bash install.sh                 # auto: user if no root, system if root
   bash install.sh Debug           # same, Debug build
   bash install.sh --user Debug    # always user-local
+  bash install.sh --user --jobs 2 # cap at 2 parallel compile jobs
   sudo bash install.sh            # system install
   sudo bash install.sh --system   # explicit system install
 EOF
@@ -72,7 +77,12 @@ EOF
 
 build_type_is_set="false"
 
-for arg in "$@"; do
+validate_jobs() {
+    [[ "$1" =~ ^[1-9][0-9]*$ ]] || { echo "Error: --jobs requires a positive integer, got '$1'." >&2; exit 2; }
+}
+
+while (($# > 0)); do
+    arg="$1"
     case "$arg" in
         --help|-h)            usage; exit 0 ;;
         --user)               install_mode="user" ;;
@@ -83,6 +93,14 @@ for arg in "$@"; do
         --purge-user-data)    purge_user_data="true" ;;
         --translations)       l10n_auto_translations="ON"; l10n_branch="trunk" ;;
         --translations-stable) l10n_auto_translations="ON"; l10n_branch="stable" ;;
+        --jobs)
+            shift
+            (($# > 0)) || { echo "Error: --jobs requires a value." >&2; exit 2; }
+            validate_jobs "$1"; build_jobs="$1" ;;
+        --jobs=*)
+            validate_jobs "${arg#--jobs=}"; build_jobs="${arg#--jobs=}" ;;
+        -j*)
+            validate_jobs "${arg#-j}"; build_jobs="${arg#-j}" ;;
         Release|Debug|RelWithDebInfo|MinSizeRel)
             if [[ "$build_type_is_set" == "true" ]]; then
                 echo "Error: multiple build types provided." >&2; usage; exit 2
@@ -96,6 +114,7 @@ for arg in "$@"; do
             fi
             build_type="$arg"; build_type_is_set="true" ;;
     esac
+    shift
 done
 
 # ── Resolve install mode ─────────────────────────────────────────────────────
@@ -184,7 +203,12 @@ cmake "${cmake_args[@]}" ..
 
 [[ "$l10n_auto_translations" == "ON" ]] && cmake --build . --target fetch-translations
 
-cmake --build . --parallel --clean-first
+if [[ -n "$build_jobs" ]]; then
+    echo "Info: capping parallel compile jobs at ${build_jobs}"
+    cmake --build . --parallel "${build_jobs}" --clean-first
+else
+    cmake --build . --parallel --clean-first
+fi
 
 # ── Helper functions ──────────────────────────────────────────────────────────
 run_as_root() {

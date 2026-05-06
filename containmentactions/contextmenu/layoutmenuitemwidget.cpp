@@ -15,6 +15,7 @@
 #include <QPainter>
 #include <QRadioButton>
 #include <QStyleOptionMenuItem>
+#include <QTextDocument>
 
 const int ICONMARGIN = 1;
 const int MARGIN = 2;
@@ -42,14 +43,34 @@ void LayoutMenuItemWidget::setIcon(const bool &isBackgroundFile, const QString &
     m_iconName = iconName;
 }
 
+QSize LayoutMenuItemWidget::sizeHint() const
+{
+    QStyleOptionMenuItem opt;
+    opt.initFrom(this);
+    opt.text = m_action->text();
+    opt.menuItemType = QStyleOptionMenuItem::Normal;
+
+    // The text is painted via QTextDocument (Latte::drawFormattedText), whose
+    // HTML-rendered width is wider than fontMetrics().size(). Mirror the
+    // paint code's measurement so the layout names aren't clipped on the
+    // right.
+    QTextDocument doc;
+    doc.setHtml(QStringLiteral("<body>%1</body>").arg(m_action->text()));
+    const int textWidth = static_cast<int>(doc.size().width()) + MARGIN;
+
+    const int rowHeight = fontMetrics().height() + 9;
+    const int radioSize = rowHeight - 2 * MARGIN;
+    const int iconSize = qMax(16, opt.maxIconWidth);
+    const int iconLenMargin = MARGIN + ICONMARGIN; // matches drawLayoutIcon defaults
+    const int iconTotal = iconSize + 2 * iconLenMargin;
+
+    QSize contentSize(radioSize + iconTotal + textWidth + 2 * MARGIN, rowHeight);
+    return style()->sizeFromContents(QStyle::CT_MenuItem, &opt, contentSize, this);
+}
+
 QSize LayoutMenuItemWidget::minimumSizeHint() const
 {
-   QStyleOptionMenuItem opt;
-   QSize contentSize = fontMetrics().size(Qt::TextSingleLine | Qt::TextShowMnemonic, m_action->text());
-
-   contentSize.setHeight(contentSize.height() + 9);
-   contentSize.setWidth(contentSize.width() + 9);
-   return style()->sizeFromContents(QStyle::CT_MenuItem, &opt, contentSize, this);
+    return sizeHint();
 }
 
 void LayoutMenuItemWidget::paintEvent(QPaintEvent* e)
