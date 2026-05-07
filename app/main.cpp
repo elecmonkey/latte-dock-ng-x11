@@ -66,8 +66,7 @@ int main(int argc, char **argv)
 {
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
-    // Keep fractional scale behavior deterministic under Wayland.
-    // Qt6 enables High DPI by default, so we only sanitize legacy env overrides.
+    // Qt6 enables High DPI by default, so sanitize legacy env overrides.
     if (!qEnvironmentVariableIsSet("PLASMA_USE_QT_SCALING")) {
         qunsetenv("QT_DEVICE_PIXEL_RATIO");
     }
@@ -75,18 +74,14 @@ int main(int argc, char **argv)
     QQuickWindow::setDefaultAlphaBuffer(true);
     ensureUserLocalQmlImportPaths(argc, argv);
 
-    qputenv("QT_WAYLAND_DISABLE_FIXED_POSITIONS", {});
     const bool qpaVariable = qEnvironmentVariableIsSet("QT_QPA_PLATFORM");
     detectPlatform(argc, argv);
-    // Set desktop file id before app initialization so Wayland app_id is correct
-    // from the earliest possible point for privileged interface checks.
     QGuiApplication::setDesktopFileName(QString::fromLatin1(Latte::App::DESKTOPFILENAME));
     ensureKdeSessionEnvironment();
     QApplication app(argc, argv);
-    qunsetenv("QT_WAYLAND_DISABLE_FIXED_POSITIONS");
 
-    if (!KWindowSystem::isPlatformWayland()) {
-        qCritical() << "Latte-Dock Wayland-only build requires a Wayland Plasma session.";
+    if (!KWindowSystem::isPlatformX11()) {
+        qCritical() << "Latte-Dock NG X11-only build requires an X11 Plasma session.";
         return 1;
     }
 
@@ -682,7 +677,7 @@ inline void configureAboutData()
     KAboutData about(QStringLiteral("lattedock")
                      , QStringLiteral("Latte Dock NG")
                      , QStringLiteral(VERSION)
-                     , i18n("Latte Dock NG is a Wayland-first dock for KDE Plasma 6.6+ that provides an elegant and "
+                     , i18n("Latte Dock NG is an X11 dock for KDE Plasma 6.6+ that provides an elegant and "
                             "intuitive experience for your tasks and widgets. It animates its contents "
                             "using a parabolic zoom effect and stays out of the way when not needed."
                             "\n\nSpecial thanks to the original Latte Dock authors and contributors."
@@ -722,5 +717,5 @@ inline void detectPlatform(int argc, char **argv)
         }
     }
 
-    qputenv("QT_QPA_PLATFORM", "wayland");
+    qputenv("QT_QPA_PLATFORM", "xcb");
 }

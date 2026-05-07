@@ -10,64 +10,21 @@
 #include <QDebug>
 #include <QGuiApplication>
 #include <QScreen>
+#include <QTimer>
 
-#include "qwayland-kde-primary-output-v1.h"
-#include "qwayland-kde-output-order-v1.h"
-#include <KWayland/Client/connection_thread.h>
-#include <KWayland/Client/registry.h>
+#include <xcb/randr.h>
+#include <xcb/xcb.h>
+#include <xcb/xcb_event.h>
 
-class WaylandPrimaryOutput : public QObject, public QtWayland::kde_primary_output_v1
+namespace {
+
+xcb_connection_t *x11Connection()
 {
-    Q_OBJECT
-public:
-    WaylandPrimaryOutput(struct ::wl_registry *registry, int id, int version, QObject *parent)
-        : QObject(parent)
-        , QtWayland::kde_primary_output_v1(registry, id, version)
-    {
-    }
+    auto *x11 = qGuiApp ? qGuiApp->nativeInterface<QNativeInterface::QX11Application>() : nullptr;
+    return x11 ? x11->connection() : nullptr;
+}
 
-    void kde_primary_output_v1_primary_output(const QString &outputName) override
-    {
-        Q_EMIT primaryOutputChanged(outputName);
-    }
-
-Q_SIGNALS:
-    void primaryOutputChanged(const QString &outputName);
-};
-
-// Plasma 6 KWin advertises kde_output_order_v1 instead of the legacy
-// kde_primary_output_v1. The compositor sends a sequence of `output(name)`
-// events followed by `done`; the first name in the sequence is the logical
-// primary output (kscreen's "priority 1").
-class WaylandOutputOrder : public QObject, public QtWayland::kde_output_order_v1
-{
-    Q_OBJECT
-public:
-    WaylandOutputOrder(struct ::wl_registry *registry, int id, int version, QObject *parent)
-        : QObject(parent)
-        , QtWayland::kde_output_order_v1(registry, id, version)
-    {
-    }
-
-    void kde_output_order_v1_output(const QString &outputName) override
-    {
-        m_pending.append(outputName);
-    }
-
-    void kde_output_order_v1_done() override
-    {
-        if (!m_pending.isEmpty()) {
-            Q_EMIT primaryOutputChanged(m_pending.first());
-        }
-        m_pending.clear();
-    }
-
-Q_SIGNALS:
-    void primaryOutputChanged(const QString &outputName);
-
-private:
-    QStringList m_pending;
-};
+}
 
 PrimaryOutputWatcher::PrimaryOutputWatcher(QObject *parent)
     : QObject(parent)
@@ -76,13 +33,21 @@ PrimaryOutputWatcher::PrimaryOutputWatcher(QObject *parent)
         m_primaryOutputName = qGuiApp->primaryScreen()->name();
     }
 
+    xcb_connection_t *connection = x11Connection();
+    if (connection) {
+        qGuiApp->installNativeEventFilter(this);
+
+        const xcb_query_extension_reply_t *reply = xcb_get_extension_data(connection, &xcb_randr_id);
+        if (reply && reply->present) {
+            m_xrandrExtensionOffset = reply->first_event;
+        }
+    }
+
     connect(qGuiApp, &QGuiApplication::primaryScreenChanged, this, [this](QScreen *newPrimary) {
         if (newPrimary) {
             setPrimaryOutputName(newPrimary->name());
         }
     });
-
-    setupRegistry();
 }
 
 void PrimaryOutputWatcher::setPrimaryOutputName(const QString &newOutputName)
@@ -94,47 +59,26 @@ void PrimaryOutputWatcher::setPrimaryOutputName(const QString &newOutputName)
     }
 }
 
-void PrimaryOutputWatcher::setupRegistry()
+bool PrimaryOutputWatcher::nativeEventFilter(const QByteArray &eventType, void *message, qintptr *result)
 {
-    auto m_connection = KWayland::Client::ConnectionThread::fromApplication(this);
-    if (!m_connection) {
-        return;
+    Q_UNUSED(result);
+
+    if (m_xrandrExtensionOffset == 0 || eventType.isEmpty() || eventType[0] != 'x') {
+        return false;
     }
 
-    // Asking for primaryOutputName() before this happened, will return qGuiApp->primaryScreen()->name() anyways, so set it so the primaryOutputNameChange will
-    // have parameters that are coherent
-    m_primaryOutputName = qGuiApp->primaryScreen()->name();
-    m_registry = new KWayland::Client::Registry(this);
-    connect(m_registry, &KWayland::Client::Registry::interfaceAnnounced, this, [this](const QByteArray &interface, quint32 name, quint32 version) {
-        // Both protocols ultimately call setPrimaryOutputName via the same
-        // lambda below. Plasma 6 KWin only ships kde_output_order_v1; older
-        // sessions still have kde_primary_output_v1.
-        auto applyPrimary = [this](const QString &outputName) {
-            m_primaryOutputWayland = outputName;
-            // Only set the outputName when there's a QScreen attached to it
-            if (screenForName(outputName)) {
-                setPrimaryOutputName(outputName);
+    xcb_generic_event_t *event = static_cast<xcb_generic_event_t *>(message);
+    const auto responseType = XCB_EVENT_RESPONSE_TYPE(event);
+
+    if (responseType == m_xrandrExtensionOffset + XCB_RANDR_SCREEN_CHANGE_NOTIFY) {
+        QTimer::singleShot(0, this, [this]() {
+            if (qGuiApp->primaryScreen()) {
+                setPrimaryOutputName(qGuiApp->primaryScreen()->name());
             }
-        };
+        });
+    }
 
-        if (interface == WaylandOutputOrder::interface()->name) {
-            auto outputOrder = new WaylandOutputOrder(m_registry->registry(), name, version, this);
-            connect(outputOrder, &WaylandOutputOrder::primaryOutputChanged, this, applyPrimary);
-        } else if (interface == WaylandPrimaryOutput::interface()->name) {
-            auto primaryOutput = new WaylandPrimaryOutput(m_registry->registry(), name, version, this);
-            connect(primaryOutput, &WaylandPrimaryOutput::primaryOutputChanged, this, applyPrimary);
-        }
-    });
-
-    // In case the outputName was received before Qt reported the screen
-    connect(qGuiApp, &QGuiApplication::screenAdded, this, [this](QScreen *screen) {
-        if (screen->name() == m_primaryOutputWayland) {
-            setPrimaryOutputName(m_primaryOutputWayland);
-        }
-    });
-
-    m_registry->create(m_connection);
-    m_registry->setup();
+    return false;
 }
 
 QScreen *PrimaryOutputWatcher::screenForName(const QString &outputName) const
@@ -157,5 +101,3 @@ QScreen *PrimaryOutputWatcher::primaryScreen() const
     }
     return screen;
 }
-
-#include "primaryoutputwatcher.moc"

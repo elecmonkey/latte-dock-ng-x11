@@ -41,7 +41,7 @@
 #include "view/windowstracker/currentscreentracker.h"
 #include "wm/abstractwindowinterface.h"
 #include "wm/schemecolors.h"
-#include "wm/waylandinterface.h"
+#include "wm/xwindowinterface.h"
 #include "wm/tracker/lastactivewindow.h"
 #include "wm/tracker/schemes.h"
 #include "wm/tracker/windowstracker.h"
@@ -103,10 +103,8 @@ Corona::Corona(bool defaultLayoutOnStartup, QString layoutNameOnStartUp, QString
 {
     connect(qApp, &QApplication::aboutToQuit, this, &Corona::onAboutToQuit);
 
-    //! Wayland-only runtime
-    m_wm = new WindowSystem::WaylandInterface(this);
-
-    setupWaylandIntegration();
+    //! X11-only runtime
+    m_wm = new WindowSystem::XWindowInterface(this);
 
     KPackage::Package package(new Latte::Package(this));
 
@@ -323,48 +321,7 @@ void Corona::unload()
 
 void Corona::setupWaylandIntegration()
 {
-    using namespace KWayland::Client;
-
-    auto connection = ConnectionThread::fromApplication(this);
-
-    if (!connection) {
-        return;
-    }
-
-    Registry *registry{new Registry(this)};
-    registry->create(connection);
-
-    connect(registry, &Registry::plasmaShellAnnounced, this
-            , [this, registry](quint32 name, quint32 version) {
-        m_waylandCorona = registry->createPlasmaShell(name, version, this);
-    });
-
-    QObject::connect(registry, &KWayland::Client::Registry::plasmaWindowManagementAnnounced,
-                     [this, registry](quint32 name, quint32 version) {
-        KWayland::Client::PlasmaWindowManagement *pwm = registry->createPlasmaWindowManagement(name, version, this);
-
-        WindowSystem::WaylandInterface *wI = qobject_cast<WindowSystem::WaylandInterface *>(m_wm);
-
-        if (wI) {
-            wI->initWindowManagement(pwm);
-        }
-    });
-
-
-    QObject::connect(registry, &KWayland::Client::Registry::plasmaVirtualDesktopManagementAnnounced,
-                     [this, registry] (quint32 name, quint32 version) {
-        KWayland::Client::PlasmaVirtualDesktopManagement *vdm = registry->createPlasmaVirtualDesktopManagement(name, version, this);
-
-        WindowSystem::WaylandInterface *wI = qobject_cast<WindowSystem::WaylandInterface *>(m_wm);
-
-        if (wI) {
-            wI->initVirtualDesktopManagement(vdm);
-        }
-    });
-
-
-    registry->setup();
-    connection->roundtrip();
+    //! X11-only build: no Wayland registry integration.
 }
 
 KWayland::Client::PlasmaShell *Corona::waylandCoronaInterface() const

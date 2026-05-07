@@ -9,6 +9,7 @@
 
 set(_compat_taskmanager_relpath "org/kde/plasma/private/taskmanager")
 set(_compat_taskmanager_dir "${KDE_INSTALL_FULL_QMLDIR}/${_compat_taskmanager_relpath}")
+set(_compat_taskmanager_install_dir "${KDE_INSTALL_QMLDIR}/${_compat_taskmanager_relpath}")
 set(_compat_taskmanager_marker "${_compat_taskmanager_dir}/.latte-fallback-module")
 set(_compat_taskmanager_qmldir "${_compat_taskmanager_dir}/qmldir")
 
@@ -16,10 +17,10 @@ if(NOT EXISTS "${_compat_taskmanager_qmldir}" OR EXISTS "${_compat_taskmanager_m
     message(STATUS "Installing fallback org.kde.plasma.private.taskmanager QML module to ${_compat_taskmanager_dir}")
 
     install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${_compat_taskmanager_relpath}/"
-            DESTINATION "${KDE_INSTALL_QMLDIR}/${_compat_taskmanager_relpath}")
+            DESTINATION "${_compat_taskmanager_install_dir}")
 
     install(CODE "
-        file(WRITE \"\$ENV{DESTDIR}${_compat_taskmanager_marker}\"
+        file(WRITE \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${_compat_taskmanager_install_dir}/.latte-fallback-module\"
              \"latte-dock-ng fallback module\\n\")
     ")
 else()

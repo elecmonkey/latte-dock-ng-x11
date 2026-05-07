@@ -191,14 +191,7 @@ Column {
                 id:previewThumbLoader
                 anchors.fill: parent
                 anchors.margins: Math.max(2, previewShadow.radius)
-                // Disabled together with TaskItem.showPreviewWindow(): the
-                // preview popup itself is suppressed under Plasma 6 / Wayland,
-                // so we don't need to keep PipeWire ScreencastingRequest
-                // objects alive for every task — they would otherwise emit
-                // "无法找到窗口 ID 0" / "No QSGTexture provided" warnings
-                // continuously while the delegate tree is preloaded as
-                // mainItem of the (always-hidden) dialog.
-                active: false
+                active: LatteCore.WindowSystem.isPlatformX11
                 // Async load matches plasma-desktop's taskmanager pattern;
                 // synchronous loading was blocking the dock UI on every
                 // hover and producing visible jank.
@@ -208,9 +201,7 @@ Column {
                 // "No QSGTexture provided from updateSampledImage()" warnings
                 // and (under DodgeActive) crashes during the dock's
                 // configure-driven re-render.
-                visible: !albumArtImage.visible
-                         && !thumbnailSourceItem.isMinimized
-                         && (item ? (item.hasThumbnail ?? false) : false)
+                visible: !albumArtImage.visible && !thumbnailSourceItem.isMinimized
                 onStatusChanged: {
                     if (status === Loader.Error && source !== "PlasmaCoreThumbnail.qml") {
                         source = "PlasmaCoreThumbnail.qml";

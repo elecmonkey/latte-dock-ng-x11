@@ -464,11 +464,6 @@ void Effects::updateShadows()
 
 void Effects::updateEffects()
 {
-    // Apply effects only after the shell surface is ready.
-    if (!m_view->surface()) {
-        return;
-    }
-
     bool clearEffects{true};
 
     if (m_drawEffects) {

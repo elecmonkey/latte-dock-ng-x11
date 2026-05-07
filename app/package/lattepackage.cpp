@@ -7,8 +7,12 @@
 
 #include "lattepackage.h"
 
+// local
+#include <config-latte.h>
+
 // Qt
 #include <QDebug>
+#include <QDir>
 #include <QLatin1String>
 
 // KDE
@@ -61,6 +65,12 @@ void Package::initPackage(KPackage::Package *package)
     package->addFileDefinition("compactapplet", QStringLiteral("applet/CompactApplet.qml"));
 
     package->setFallbackPackage(fallback);
+
+    if (!package->isValid()) {
+        const QString sourcePackagePath = QDir(QStringLiteral(LATTE_SOURCE_DIR)).filePath(QStringLiteral("shell/package"));
+        package->setPath(sourcePackagePath);
+    }
+
     qDebug() << "package is valid" << package->isValid();
 }
 

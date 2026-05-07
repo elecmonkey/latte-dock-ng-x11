@@ -62,13 +62,10 @@ SubWindow::SubWindow(Latte::View *view, QString debugType) :
         updateGeometry();
     });
 
-    setupWaylandIntegration();
-
-    connect(this, &QWindow::windowTitleChanged, this, &SubWindow::updateWaylandId);
-    connect(m_corona->wm(), &WindowSystem::AbstractWindowInterface::latteWindowAdded, this, &SubWindow::updateWaylandId);
-
     setScreen(m_latteView->screen());
     show();
+    m_trackedWindowId = QByteArray::number(static_cast<qulonglong>(winId()));
+    m_corona->wm()->registerIgnoredWindow(m_trackedWindowId);
     hideWithMask();
 }
 
@@ -122,7 +119,7 @@ Latte::View *SubWindow::parentView()
 Latte::WindowSystem::WindowId SubWindow::trackedWindowId()
 {
     if (m_trackedWindowId.isEmpty()) {
-        updateWaylandId();
+        m_trackedWindowId = QByteArray::number(static_cast<qulonglong>(winId()));
     }
 
     return m_trackedWindowId;
@@ -151,7 +148,7 @@ void SubWindow::fixGeometry()
 
 void SubWindow::updateWaylandId()
 {
-    Latte::WindowSystem::WindowId newId = m_corona->wm()->winIdFor(App::preferredWaylandAppId(), validTitle());
+    Latte::WindowSystem::WindowId newId = QByteArray::number(static_cast<qulonglong>(winId()));
 
     if (m_trackedWindowId != newId) {
         if (!m_trackedWindowId.isNull()) {

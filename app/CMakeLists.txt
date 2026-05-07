@@ -50,19 +50,6 @@ ki18n_wrap_ui(lattedock-app_SRCS settings/screensdialog/screensdialog.ui)
 ki18n_wrap_ui(lattedock-app_SRCS settings/settingsdialog/settingsdialog.ui)
 ki18n_wrap_ui(lattedock-app_SRCS settings/viewsdialog/viewsdialog.ui)
 
-ecm_add_qtwayland_client_protocol(lattedock-app_SRCS
-    PROTOCOL ${PLASMA_WAYLAND_PROTOCOLS_DIR}/kde-primary-output-v1.xml
-    BASENAME kde-primary-output-v1
-)
-
-# Plasma 6 KWin no longer advertises kde_primary_output_v1; kde_output_order_v1
-# replaces it (compositor sends the desktop output order; first entry is the
-# logical primary). Bind both so we work on old and new sessions.
-ecm_add_qtwayland_client_protocol(lattedock-app_SRCS
-    PROTOCOL ${PLASMA_WAYLAND_PROTOCOLS_DIR}/kde-output-order-v1.xml
-    BASENAME kde-output-order-v1
-)
-
 add_executable(latte-dock-ng ${lattedock-app_SRCS})
 
 include(FakeTarget.cmake)
@@ -95,7 +82,8 @@ target_link_libraries(latte-dock-ng
     ${LATTE_WAYLANDCLIENT_TARGET}
     KF6::WindowSystem
     KF6::XmlGui
-    Wayland::Client
+    ${X11_LIBRARIES}
+    ${XCB_LIBRARIES}
 )
 
 configure_file(org.kde.latte-dock.desktop.cmake org.kde.latte-dock.desktop)

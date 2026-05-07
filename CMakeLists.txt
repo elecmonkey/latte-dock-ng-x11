@@ -53,11 +53,22 @@ find_package(KF6Declarative ${KF6_MIN_VERSION} REQUIRED CONFIG)
 find_package(LibTaskManager ${PLASMA_MIN_VERSION} REQUIRED)
 add_definitions(-DPLASMA_WORKSPACE_VERSION="${LibTaskManager_VERSION}")
 
+find_package(X11 REQUIRED)
+set_package_properties(X11 PROPERTIES DESCRIPTION "X11 libraries"
+    URL "https://www.x.org"
+    TYPE REQUIRED
+    PURPOSE "Required for the X11-only Latte Dock NG build")
 
-find_package(QtWaylandScanner REQUIRED)
-find_package(Qt${QT_MAJOR_VERSION}WaylandClient REQUIRED)
-find_package(PlasmaWaylandProtocols 1.6 REQUIRED)
-find_package(Wayland REQUIRED COMPONENTS Client)
+find_package(XCB MODULE REQUIRED COMPONENTS XCB RANDR SHAPE EVENT)
+set_package_properties(XCB PROPERTIES TYPE REQUIRED)
+
+if(NOT X11_SM_FOUND)
+    message(FATAL_ERROR "\nThe X11 Session Management (SM) development package could not be found.\nPlease install libSM.\n")
+endif()
+
+if(X11_FOUND AND XCB_XCB_FOUND)
+    set(HAVE_X11 ON)
+endif()
 
 message(STATUS "KF6 VERSION : ${KF6_VERSION}")
 message(STATUS "LibTaskManager VERSION : ${LibTaskManager_VERSION}")
@@ -266,12 +277,6 @@ endif()
 if("${LATTE_NEWSTUFF_TARGET}" STREQUAL "")
     message(FATAL_ERROR
         "Could not resolve a KNewStuff CMake link target. "
-        "Imported targets in this directory: ${_latte_imported_targets}")
-endif()
-
-if("${LATTE_WAYLANDCLIENT_TARGET}" STREQUAL "")
-    message(FATAL_ERROR
-        "Could not resolve a KWayland client CMake link target. "
         "Imported targets in this directory: ${_latte_imported_targets}")
 endif()
 

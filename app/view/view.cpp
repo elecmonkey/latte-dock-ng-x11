@@ -1182,7 +1182,7 @@ void View::applyActivitiesToWindows()
         }
 
         if (m_appletConfigView) {
-            const Latte::WindowSystem::WindowId appletconfigviewid = m_corona->wm()->winIdFor(App::preferredWaylandAppId(), m_appletConfigView->title());
+            const Latte::WindowSystem::WindowId appletconfigviewid = QByteArray::number(static_cast<qulonglong>(m_appletConfigView->winId()));
 
             m_positioner->setWindowOnActivities(appletconfigviewid, runningActivities);
         }

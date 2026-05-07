@@ -54,8 +54,14 @@ Positioner::Positioner(Latte::View *parent)
     m_corona = qobject_cast<Latte::Corona *>(m_view->corona());
 
     if (m_corona) {
-        connect(m_view, &QWindow::windowTitleChanged, this, &Positioner::updateWaylandId);
-        connect(m_corona->wm(), &WindowSystem::AbstractWindowInterface::latteWindowAdded, this, &Positioner::updateWaylandId);
+        m_trackedWindowId = QByteArray::number(static_cast<qulonglong>(m_view->winId()));
+        m_corona->wm()->registerIgnoredWindow(m_trackedWindowId);
+
+        connect(m_view, &Latte::View::forcedShown, this, [&]() {
+            m_corona->wm()->unregisterIgnoredWindow(m_trackedWindowId);
+            m_trackedWindowId = QByteArray::number(static_cast<qulonglong>(m_view->winId()));
+            m_corona->wm()->registerIgnoredWindow(m_trackedWindowId);
+        });
 
         connect(m_corona->layoutsManager(), &Layouts::Manager::currentLayoutIsSwitching, this, &Positioner::onCurrentLayoutIsSwitching);
         /////
@@ -220,7 +226,7 @@ void Positioner::updateWaylandId()
         return;
     }
 
-    Latte::WindowSystem::WindowId newId = m_corona->wm()->winIdFor(App::preferredWaylandAppId(), validTitle);
+    Latte::WindowSystem::WindowId newId = QByteArray::number(static_cast<qulonglong>(m_view->winId()));
 
     if (m_trackedWindowId != newId) {
         if (!m_trackedWindowId.isNull()) {
@@ -273,7 +279,7 @@ int Positioner::currentScreenId() const
 Latte::WindowSystem::WindowId Positioner::trackedWindowId()
 {
     if (m_trackedWindowId.isEmpty()) {
-        updateWaylandId();
+        m_trackedWindowId = QByteArray::number(static_cast<qulonglong>(m_view->winId()));
     }
 
     return m_trackedWindowId;

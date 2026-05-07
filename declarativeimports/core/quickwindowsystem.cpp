@@ -10,13 +10,24 @@
 // Qt
 #include <QDebug>
 
+// KDE
+#include <KWindowSystem>
+#include <KX11Extras>
+
 namespace Latte {
 
 QuickWindowSystem::QuickWindowSystem(QObject *parent)
     : QObject(parent)
 {
-    // Wayland-only build keeps compositing enabled by contract.
-    m_compositing = true;
+    m_compositing = KX11Extras::compositingActive();
+    connect(KX11Extras::self(), &KX11Extras::compositingChanged, this, [this](bool enabled) {
+        if (m_compositing == enabled) {
+            return;
+        }
+
+        m_compositing = enabled;
+        Q_EMIT compositingChanged();
+    });
 }
 
 QuickWindowSystem::~QuickWindowSystem()
@@ -31,7 +42,12 @@ bool QuickWindowSystem::compositingActive() const
 
 bool QuickWindowSystem::isPlatformWayland() const
 {
-    return true;
+    return KWindowSystem::isPlatformWayland();
+}
+
+bool QuickWindowSystem::isPlatformX11() const
+{
+    return KWindowSystem::isPlatformX11();
 }
 
 } //end of namespace

@@ -41,8 +41,6 @@ InfoView::InfoView(Latte::Corona *corona, QString message, QScreen *screen, QWin
 
     setTitle(validTitle());
 
-    setupWaylandIntegration();
-
     setResizeMode(QQuickView::SizeViewToRootObject);
     setColor(QColor(Qt::transparent));
     setDefaultAlphaBuffer(true);
@@ -52,8 +50,8 @@ InfoView::InfoView(Latte::Corona *corona, QString message, QScreen *screen, QWin
     setScreen(screen);
     setFlags(wFlags());
 
-    connect(this, &QWindow::windowTitleChanged, this, &InfoView::updateWaylandId);
-    connect(m_corona->wm(), &WindowSystem::AbstractWindowInterface::latteWindowAdded, this, &InfoView::updateWaylandId);
+    m_trackedWindowId = QByteArray::number(static_cast<qulonglong>(winId()));
+    m_corona->wm()->registerIgnoredWindow(m_trackedWindowId);
 
     init();
 }
@@ -145,7 +143,7 @@ void InfoView::showEvent(QShowEvent *ev)
 
 void InfoView::updateWaylandId()
 {
-    Latte::WindowSystem::WindowId newId = m_corona->wm()->winIdFor(App::preferredWaylandAppId(), validTitle());
+    Latte::WindowSystem::WindowId newId = QByteArray::number(static_cast<qulonglong>(winId()));
 
     if (m_trackedWindowId != newId) {
         if (!m_trackedWindowId.isNull()) {

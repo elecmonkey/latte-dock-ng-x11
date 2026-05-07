@@ -32,11 +32,6 @@ SubConfigView::SubConfigView(Latte::View *view, const QString &title, const bool
 {
     m_corona = qobject_cast<Latte::Corona *>(view->containment()->corona());
 
-    setupWaylandIntegration();
-
-    connect(this, &QWindow::windowTitleChanged, this, &SubConfigView::updateWaylandId);
-    connect(m_corona->wm(), &WindowSystem::AbstractWindowInterface::latteWindowAdded, this, &SubConfigView::updateWaylandId);
-
     m_validTitle = title;
     setTitle(m_validTitle);
 
@@ -126,7 +121,7 @@ QString SubConfigView::validTitle() const
 Latte::WindowSystem::WindowId SubConfigView::trackedWindowId()
 {
     if (m_waylandWindowId.isEmpty()) {
-        updateWaylandId();
+        m_waylandWindowId = QByteArray::number(static_cast<qulonglong>(winId()));
     }
 
     return m_waylandWindowId;
@@ -169,12 +164,7 @@ void SubConfigView::initParentView(Latte::View *view)
 
 void SubConfigView::requestActivate()
 {
-    if (m_shellSurface) {
-        updateWaylandId();
-        m_corona->wm()->requestActivate(m_waylandWindowId);
-    } else {
-        QQuickView::requestActivate();
-    }
+    m_corona->wm()->requestActivate(trackedWindowId());
 }
 
 void SubConfigView::showAfter(int msecs)
@@ -303,7 +293,7 @@ bool SubConfigView::event(QEvent *e)
 
 void SubConfigView::updateWaylandId()
 {
-    Latte::WindowSystem::WindowId newId = m_corona->wm()->winIdFor(App::preferredWaylandAppId(), validTitle());
+    Latte::WindowSystem::WindowId newId = QByteArray::number(static_cast<qulonglong>(winId()));
 
     if (m_waylandWindowId != newId) {
         if (!m_waylandWindowId.isNull()) {
