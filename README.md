@@ -1,8 +1,8 @@
 # <img src="logo.png" width="48"/> Latte Dock NG
 
-> **Fork notice**: This is an unofficial fork of [KDE Latte Dock](https://github.com/KDE/latte-dock) maintained by Ruizhi Zhong, targeting **KDE Plasma 6.6+ on Wayland only**. X11 support has been intentionally removed.
+> **Fork notice**: This is an unofficial X11-focused fork of [Latte Dock NG](https://github.com/ruizhi-lab/latte-dock-ng), itself based on [KDE Latte Dock](https://github.com/KDE/latte-dock). This fork targets **KDE Plasma 6.6+ on X11**.
 
-Latte Dock NG is a Wayland-first dock for KDE Plasma 6.6+ that provides an elegant and intuitive experience for your tasks and widgets. It animates its contents using a parabolic zoom effect and stays out of the way when not needed.
+> Latte Dock NG is a Wayland-first dock for KDE Plasma 6.6+ that provides an elegant and intuitive experience for your tasks and widgets. It animates its contents using a parabolic zoom effect and stays out of the way when not needed.
 
 **"Art in Coffee"**
 
@@ -14,11 +14,12 @@ Screenshots
 Development
 ============
 
-- This fork: https://github.com/ruizhi-lab/latte-dock-ng
+- This fork: https://github.com/elecmonkey/latte-dock-ng-x11
+- Source fork used as the Plasma 6 base: https://github.com/ruizhi-lab/latte-dock-ng
 - Release notes: `CHANGELOG.md`
 - Upstream KDE repo: https://invent.kde.org/plasma/latte-dock
 - GitHub mirror of upstream: https://github.com/KDE/latte-dock
-- Bug reports for this fork: https://github.com/ruizhi-lab/latte-dock-ng/issues
+- Bug reports for this fork: https://github.com/elecmonkey/latte-dock-ng-x11/issues
 - Bug reports for upstream: https://bugs.kde.org/enter_bug.cgi?product=lattedock
 
 
@@ -30,9 +31,8 @@ Installation
 We need to use at least:
 
 - **Plasma >= 6.6.0**
-- **PlasmaWaylandProtocols >= 1.6.0**
 - **Qt >= 6.6**
-- **Wayland session (X11 is not supported in this fork)**
+- **X11 session**
 
 Minimum requirements:
  
@@ -51,12 +51,10 @@ Minimum requirements:
  Qt6Qml >= 6.6.0
  Qt6Quick >= 6.6.0
  Qt6Widgets >= 6.6.0
- Qt6WaylandClient >= 6.6.0
 
  Plasma >= 6.6.0
  PlasmaQuick >= 6.6.0
  PlasmaActivities >= 6.6.0
- KWayland >= 6.6.0
  LibTaskManager >= 6.6.0
 
  KF6CoreAddons >= 6.0.0
@@ -75,22 +73,19 @@ Minimum requirements:
  KF6Crash >= 6.0.0
  KF6WindowSystem >= 6.0.0
 
- PlasmaWaylandProtocols >= 1.6
- Wayland::Client
-```
-### From my personal gentoo overlay for Gentoo Linux
-
-```bash
-eselect repository add ruizhi-overlay git https://github.com/ruizhi-lab/gentoo-overlay.git
-emaint sync -r ruizhi-overlay
-emerge -av kde-misc/latte-dock-ng
+ X11
+ XCB
+ XCB RandR
+ XCB Shape
+ XCB Util/Event
+ X11 Session Management (SM)
 ```
 
 ### From source
 
 ```bash
-git clone https://github.com/ruizhi-lab/latte-dock-ng.git
-cd latte-dock-ng
+git clone https://github.com/elecmonkey/latte-dock-ng-x11.git
+cd latte-dock-ng-x11
 mkdir build && cd build
 cmake .. -DCMAKE_INSTALL_PREFIX=/usr
 make -j$(nproc)
@@ -113,19 +108,9 @@ bash uninstall.sh --dry-run
 bash uninstall.sh --purge-user-data
 ```
 
-## Run Latte Dock NG
-
-Latte Dock NG is now ready to be used by executing
-```
-latte-dock-ng
-```
-
-or activating **Latte Dock NG** from the applications menu.
-
-
 Contributors
 ============
-- [Ruizhi Zhong](https://github.com/ruizhi-lab): Maintainer of this fork (Plasma 6.6+ / Wayland).
+- [Ruizhi Zhong](https://github.com/ruizhi-lab): Maintainer of the Plasma 6 Latte Dock NG fork.
 - [Varlesh](https://github.com/varlesh): Logos and Icons.
 - Original Latte Dock authors and contributors: thank you for the upstream foundation.
 
@@ -133,7 +118,10 @@ Contributors
 License & Copyright
 ===================
 
-**Current fork (Latte Dock NG):**
+**Latte Dock NG X11 fork:**
+Licensed under GNU General Public License 3.0 (GPL-3.0).
+
+**Latte Dock NG fork:**
 Copyright (C) 2024-2026 Ruizhi Zhong
 Author & Contact: Ruizhi Zhong <ruizhi.zhong88@gmail.com>
 Licensed under GNU General Public License 3.0 (GPL-3.0).
