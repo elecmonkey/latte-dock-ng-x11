@@ -47,8 +47,6 @@
 // KDe
 #include <KActionCollection>
 #include <KActivities/Consumer>
-#include <KWayland/Client/plasmashell.h>
-#include <KWayland/Client/surface.h>
 
 // Plasma
 #include <Plasma/Containment>
@@ -455,39 +453,6 @@ void View::availableScreenRectChangedFromSlot(View *origin)
     }
 }
 
-void View::setupWaylandIntegration()
-{
-    if (m_shellSurface)
-        return;
-
-    if (Latte::Corona *c = qobject_cast<Latte::Corona *>(corona())) {
-        using namespace KWayland::Client;
-        PlasmaShell *interface {c->waylandCoronaInterface()};
-
-        if (!interface)
-            return;
-
-        Surface *s{Surface::fromWindow(this)};
-
-        if (!s)
-            return;
-
-        m_shellSurface = interface->createSurface(s, this);
-        qDebug() << "WAYLAND dock window surface was created...";
-        if (m_visibility) {
-            m_visibility->initViewFlags();
-        }
-        if (m_positioner) {
-            m_positioner->updateWaylandId();
-        }
-    }
-}
-
-KWayland::Client::PlasmaShellSurface *View::surface()
-{
-    return m_shellSurface;
-}
-
 //! the main function which decides if this dock is at the
 //! correct screen
 void View::reconsiderScreen()
@@ -717,24 +682,15 @@ void View::statusChanged(Plasma::Types::ItemStatus status)
         m_visibility->addBlockHidingEvent(BLOCKHIDINGNEEDSATTENTIONTYPE);
         setFlags(flags() | Qt::WindowDoesNotAcceptFocus);
         m_visibility->initViewFlags();
-        if (m_shellSurface) {
-            m_shellSurface->setPanelTakesFocus(false);
-        }
     } else if (status == Plasma::Types::AcceptingInputStatus) {
         m_visibility->removeBlockHidingEvent(BLOCKHIDINGNEEDSATTENTIONTYPE);
         setFlags(flags() & ~Qt::WindowDoesNotAcceptFocus);
         m_visibility->initViewFlags();
-        if (m_shellSurface) {
-            m_shellSurface->setPanelTakesFocus(true);
-        }
     } else {
         updateTransientWindowsTracking();
         m_visibility->removeBlockHidingEvent(BLOCKHIDINGNEEDSATTENTIONTYPE);
         setFlags(flags() | Qt::WindowDoesNotAcceptFocus);
         m_visibility->initViewFlags();
-        if (m_shellSurface) {
-            m_shellSurface->setPanelTakesFocus(false);
-        }
     }
 }
 
@@ -1534,24 +1490,9 @@ bool View::event(QEvent *e)
             if (auto pe = dynamic_cast<QPlatformSurfaceEvent *>(e)) {
                 switch (pe->surfaceEventType()) {
                 case QPlatformSurfaceEvent::SurfaceCreated:
-                    setupWaylandIntegration();
-
-                    if (m_shellSurface) {
-                        //! immediateSyncGeometry helps avoiding binding loops from containment qml side
-                        m_positioner->immediateSyncGeometry();
-                        m_effects->updateShadows();
-                    }
-
                     break;
 
                 case QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed:
-                    if (m_shellSurface) {
-                        delete m_shellSurface;
-                        m_shellSurface = nullptr;
-                        qDebug() << "WAYLAND dock window surface was deleted...";
-                        m_effects->clearShadows();
-                    }
-
                     break;
                 }
             }

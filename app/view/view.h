@@ -48,12 +48,6 @@ class AppletQuickItem;
 }
 
 
-namespace KWayland {
-namespace Client {
-class PlasmaShellSurface;
-}
-}
-
 namespace Latte {
 class Corona;
 class Interfaces;
@@ -247,8 +241,6 @@ public:
     Layout::GenericLayout *layout() const;
     void setLayout(Layout::GenericLayout *layout);
 
-    KWayland::Client::PlasmaShellSurface *surface();
-
     //! release grab and restore mouse state
     void unblockMouse(int x, int y);
 
@@ -375,7 +367,6 @@ private Q_SLOTS:
 
 private:
     void initSignalingForLocationChangeSliding();
-    void setupWaylandIntegration();
     void updateAppletContainsMethod();
 
     void setContainsDrag(bool contains);
@@ -453,7 +444,6 @@ private:
     //! track transientWindows
     QList<QWindow *> m_transientWindows;
 
-    KWayland::Client::PlasmaShellSurface *m_shellSurface{nullptr};
 };
 
 }

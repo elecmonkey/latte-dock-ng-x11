@@ -23,10 +23,6 @@
 // Qt
 #include <QDebug>
 
-// KDE
-#include <KWayland/Client/plasmashell.h>
-#include <KWayland/Client/surface.h>
-
 #define RELOCATIONSHOWINGEVENT "viewInRelocationShowing"
 
 namespace Latte {
@@ -891,10 +887,6 @@ void Positioner::updatePosition(QRect availableScreenRect)
     }
 
     m_view->setPosition(position);
-
-    if (m_view->surface()) {
-        m_view->surface()->setPosition(position);
-    }
 }
 
 int Positioner::slideOffset() const

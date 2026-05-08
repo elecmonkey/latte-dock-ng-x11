@@ -75,10 +75,6 @@
 #include <KAboutData>
 #include <KActivities/Consumer>
 #include <KDeclarative/QmlObjectSharedEngine>
-#include <KWayland/Client/connection_thread.h>
-#include <KWayland/Client/registry.h>
-#include <KWayland/Client/plasmashell.h>
-#include <KWayland/Client/plasmawindowmanagement.h>
 
 namespace Latte {
 
@@ -317,16 +313,6 @@ void Corona::unload()
         //this form doesn't crash, while qDeleteAll(containments()) does
         delete containments().first();
     }
-}
-
-void Corona::setupWaylandIntegration()
-{
-    //! X11-only build: no Wayland registry integration.
-}
-
-KWayland::Client::PlasmaShell *Corona::waylandCoronaInterface() const
-{
-    return m_waylandCorona;
 }
 
 void Corona::cleanConfig()

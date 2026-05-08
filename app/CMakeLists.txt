@@ -79,7 +79,6 @@ target_link_libraries(latte-dock-ng
     ${LATTE_SVG_TARGET}
     Plasma::Plasma
     Plasma::PlasmaQuick
-    ${LATTE_WAYLANDCLIENT_TARGET}
     KF6::WindowSystem
     KF6::XmlGui
     ${X11_LIBRARIES}

@@ -30,8 +30,6 @@
 // KDE
 #include <KLocalizedContext>
 #include <KDeclarative/KDeclarative>
-#include <KWayland/Client/plasmashell.h>
-#include <KWayland/Client/surface.h>
 #include <KWindowEffects>
 
 // Plasma
@@ -132,9 +130,7 @@ void PrimaryConfigView::setOnActivities(QStringList activities)
 void PrimaryConfigView::requestActivate()
 {
     if (m_latteView && m_latteView->visibility()) {
-        if (m_shellSurface) {
-            m_corona->wm()->requestActivate(m_latteView->positioner()->trackedWindowId());
-        }
+        m_corona->wm()->requestActivate(m_latteView->positioner()->trackedWindowId());
     }
 
     if (m_secConfigView) {
@@ -161,12 +157,7 @@ void PrimaryConfigView::showConfigWindow()
 
 void PrimaryConfigView::hideConfigWindow()
 {
-    if (m_shellSurface) {
-        //! Avoid races where input events arrive after the surface starts teardown.
-        close();
-    } else {
-        hide();
-    }
+    hide();
 
     hideCanvasWindow();
     hideSecondaryWindow();
@@ -398,10 +389,6 @@ void PrimaryConfigView::syncGeometry()
 
     setPosition(position);
 
-    if (m_shellSurface) {
-        m_shellSurface->setPosition(position);
-    }
-
     setMaximumSize(size);
     setMinimumSize(size);
     resize(size);
@@ -412,11 +399,6 @@ void PrimaryConfigView::syncGeometry()
 void PrimaryConfigView::showEvent(QShowEvent *ev)
 {
     updateAvailableScreenGeometry();
-
-    if (m_shellSurface) {
-        //! under wayland it needs to be set again after its hiding
-        m_shellSurface->setPosition(m_geometryWhenVisible.topLeft());
-    }
 
     SubConfigView::showEvent(ev);
 
@@ -627,11 +609,6 @@ void PrimaryConfigView::updateEnabledBorders()
 
 void PrimaryConfigView::updateEffects()
 {
-    // Apply effects only after the shell surface is ready.
-    if (!m_shellSurface) {
-        return;
-    }
-
     if (!m_background) {
         m_background = new Plasma::FrameSvg(this);
     }

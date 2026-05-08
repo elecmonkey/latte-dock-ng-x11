@@ -22,8 +22,6 @@
 // KDE
 #include <KLocalizedContext>
 #include <KDeclarative/KDeclarative>
-#include <KWayland/Client/plasmashell.h>
-#include <KWayland/Client/surface.h>
 #include <KWindowEffects>
 
 // Plasma
@@ -149,10 +147,6 @@ void SecondaryConfigView::syncGeometry()
 
     setPosition(position);
 
-    if (m_shellSurface) {
-        m_shellSurface->setPosition(position);
-    }
-
     setMaximumSize(size);
     setMinimumSize(size);
     resize(size);
@@ -166,11 +160,6 @@ void SecondaryConfigView::syncGeometry()
 
 void SecondaryConfigView::showEvent(QShowEvent *ev)
 {
-    if (m_shellSurface) {
-        //! under wayland it needs to be set again after its hiding
-        m_shellSurface->setPosition(m_geometryWhenVisible.topLeft());
-    }
-
     SubConfigView::showEvent(ev);
 
     if (!m_latteView) {
@@ -212,21 +201,11 @@ void SecondaryConfigView::focusOutEvent(QFocusEvent *ev)
 
 void SecondaryConfigView::hideConfigWindow()
 {
-    if (m_shellSurface) {
-        //! Avoid races where input events arrive after the surface starts teardown.
-        close();
-    } else {
-        hide();
-    }
+    hide();
 }
 
 void SecondaryConfigView::updateEffects()
 {
-    // Apply effects only after the shell surface is ready.
-    if (!m_shellSurface) {
-        return;
-    }
-
     if (!m_background) {
         m_background = new Plasma::FrameSvg(this);
     }

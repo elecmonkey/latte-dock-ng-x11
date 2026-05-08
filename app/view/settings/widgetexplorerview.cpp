@@ -17,7 +17,6 @@
 
 // KDE
 #include <KWindowEffects>
-#include <KWayland/Client/plasmashell.h>
 
 // Plasma
 
@@ -130,10 +129,6 @@ void WidgetExplorerView::syncGeometry()
 
     setPosition(geometry.topLeft());
 
-    if (m_shellSurface) {
-        m_shellSurface->setPosition(geometry.topLeft());
-    }
-
     setMaximumSize(geometry.size());
     setMinimumSize(geometry.size());
     resize(geometry.size());
@@ -141,11 +136,6 @@ void WidgetExplorerView::syncGeometry()
 
 void WidgetExplorerView::showEvent(QShowEvent *ev)
 {
-    if (m_shellSurface) {
-        //! under wayland it needs to be set again after its hiding
-        m_shellSurface->setPosition(m_geometryWhenVisible.topLeft());
-    }
-
     SubConfigView::showEvent(ev);
 
     if (!m_latteView) {
@@ -175,11 +165,6 @@ void WidgetExplorerView::focusOutEvent(QFocusEvent *ev)
 
 void WidgetExplorerView::updateEffects()
 {
-    // Apply effects only after the shell surface is ready.
-    if (!m_shellSurface) {
-        return;
-    }
-
     if (!m_background) {
         m_background = new Plasma::FrameSvg(this);
     }

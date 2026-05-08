@@ -26,8 +26,6 @@
 #include <KPackage/Package>
 #include <KDeclarative/KDeclarative>
 #include <KWindowSystem>
-#include <KWayland/Client/plasmashell.h>
-#include <KWayland/Client/surface.h>
 
 namespace Latte {
 
@@ -66,10 +64,6 @@ InfoView::~InfoView()
 
     qDebug() << "InfoView deleting ...";
 
-    if (m_shellSurface) {
-        delete m_shellSurface;
-        m_shellSurface = nullptr;
-    }
 }
 
 void InfoView::init()
@@ -119,9 +113,6 @@ void InfoView::syncGeometry()
 
     setPosition(position);
 
-    if (m_shellSurface) {
-        m_shellSurface->setPosition(position);
-    }
 }
 
 void InfoView::showEvent(QShowEvent *ev)
@@ -159,54 +150,15 @@ void InfoView::updateWaylandId()
     }
 }
 
-void InfoView::setupWaylandIntegration()
-{
-    if (m_shellSurface) {
-        // already setup
-        return;
-    }
-
-    if (m_corona) {
-        using namespace KWayland::Client;
-        PlasmaShell *interface = m_corona->waylandCoronaInterface();
-
-        if (!interface) {
-            return;
-        }
-
-        Surface *s = Surface::fromWindow(this);
-
-        if (!s) {
-            return;
-        }
-
-        qDebug() << "wayland dock window surface was created...";
-
-        m_shellSurface = interface->createSurface(s, this);
-        m_corona->wm()->setViewExtraFlags(m_shellSurface);
-    }
-}
-
 bool InfoView::event(QEvent *e)
 {
     if (e->type() == QEvent::PlatformSurface) {
         if (auto pe = dynamic_cast<QPlatformSurfaceEvent *>(e)) {
             switch (pe->surfaceEventType()) {
                 case QPlatformSurfaceEvent::SurfaceCreated:
-
-                    if (m_shellSurface) {
-                        break;
-                    }
-
-                    setupWaylandIntegration();
                     break;
 
                 case QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed:
-                    if (m_shellSurface) {
-                        delete m_shellSurface;
-                        m_shellSurface = nullptr;
-                    }
-
                     PanelShadows::self()->removeWindow(this);
                     break;
             }

@@ -15,12 +15,6 @@
 #include <QQuickView>
 #include <QTimer>
 
-namespace KWayland {
-namespace Client {
-class PlasmaShellSurface;
-}
-}
-
 namespace Latte {
 class Corona;
 class View;
@@ -52,8 +46,6 @@ public:
     Latte::View *parentView();
     Latte::WindowSystem::WindowId trackedWindowId();
 
-    KWayland::Client::PlasmaShellSurface *surface();
-
 Q_SIGNALS:
     void forcedShown(); //[workaround] forced shown to avoid a KWin issue that hides windows when activities are stopped
     void calculatedGeometryChanged();
@@ -69,10 +61,8 @@ protected:
 private Q_SLOTS:
     void startGeometryTimer();
     void fixGeometry();
-    void updateWaylandId();
 
 private:
-    void setupWaylandIntegration();
 
 protected:
     bool m_debugMode{false};
@@ -105,7 +95,6 @@ protected:
     QPointer<Latte::Corona> m_corona;
 
     Latte::WindowSystem::WindowId m_trackedWindowId;
-    KWayland::Client::PlasmaShellSurface *m_shellSurface{nullptr};
 };
 
 }

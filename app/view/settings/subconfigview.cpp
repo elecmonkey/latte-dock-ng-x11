@@ -20,8 +20,6 @@
 // KDE
 #include <KLocalizedContext>
 #include <KDeclarative/KDeclarative>
-#include <KWayland/Client/plasmashell.h>
-#include <KWayland/Client/surface.h>
 
 namespace Latte {
 namespace ViewPart {
@@ -71,8 +69,8 @@ SubConfigView::~SubConfigView()
 
     m_corona->dialogShadows()->removeWindow(this);
 
-    if (!m_waylandWindowId.isNull()) {
-        m_corona->wm()->unregisterIgnoredWindow(m_waylandWindowId);
+    if (!m_trackedWindowId.isNull()) {
+        m_corona->wm()->unregisterIgnoredWindow(m_trackedWindowId);
     }
 
     for (const auto &var : connections) {
@@ -120,11 +118,12 @@ QString SubConfigView::validTitle() const
 
 Latte::WindowSystem::WindowId SubConfigView::trackedWindowId()
 {
-    if (m_waylandWindowId.isEmpty()) {
-        m_waylandWindowId = QByteArray::number(static_cast<qulonglong>(winId()));
+    if (m_trackedWindowId.isEmpty()) {
+        m_trackedWindowId = QByteArray::number(static_cast<qulonglong>(winId()));
+        m_corona->wm()->registerIgnoredWindow(m_trackedWindowId);
     }
 
-    return m_waylandWindowId;
+    return m_trackedWindowId;
 }
 
 Latte::Corona *SubConfigView::corona() const
@@ -211,55 +210,11 @@ void SubConfigView::syncSlideEffect()
     m_corona->wm()->slideWindow(*this, slideLocation);
 }
 
-KWayland::Client::PlasmaShellSurface *SubConfigView::surface()
-{
-    return m_shellSurface;
-}
-
-void SubConfigView::setupWaylandIntegration()
-{
-    if (m_shellSurface || !m_latteView || !m_latteView->containment()) {
-        // already setup
-        return;
-    }
-
-    if (m_corona) {
-        using namespace KWayland::Client;
-        PlasmaShell *interface = m_corona->waylandCoronaInterface();
-
-        if (!interface) {
-            return;
-        }
-
-        Surface *s = Surface::fromWindow(this);
-
-        if (!s) {
-            return;
-        }
-
-        qDebug() << "wayland " << title() <<  " surface was created...";
-
-        m_shellSurface = interface->createSurface(s, this);
-
-        if (m_isNormalWindow) {
-            m_corona->wm()->setViewExtraFlags(m_shellSurface, false);
-        } else {
-            m_corona->wm()->setViewExtraFlags(m_shellSurface, true);
-        }
-
-        updateWaylandId();
-        syncGeometry();
-    }
-}
-
 void SubConfigView::showEvent(QShowEvent *ev)
 {
     QQuickView::showEvent(ev);
 
-    if (m_shellSurface) {
-        //! readd shadows after hiding because the window shadows are not shown again after first showing
-        m_corona->dialogShadows()->addWindow(this, m_enabledBorders);
-    }
+    m_corona->dialogShadows()->addWindow(this, m_enabledBorders);
 }
 
 bool SubConfigView::event(QEvent *e)
@@ -268,41 +223,15 @@ bool SubConfigView::event(QEvent *e)
         if (auto pe = dynamic_cast<QPlatformSurfaceEvent *>(e)) {
             switch (pe->surfaceEventType()) {
             case QPlatformSurfaceEvent::SurfaceCreated:
-
-                if (m_shellSurface) {
-                    break;
-                }
-
-                setupWaylandIntegration();
                 break;
 
             case QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed:
-                if (m_shellSurface) {
-                    delete m_shellSurface;
-                    m_shellSurface = nullptr;
-                    qDebug() << "WAYLAND " << title() <<  " window surface was deleted...";
-                }
-
                 break;
             }
         }
     }
 
     return QQuickView::event(e);
-}
-
-void SubConfigView::updateWaylandId()
-{
-    Latte::WindowSystem::WindowId newId = QByteArray::number(static_cast<qulonglong>(winId()));
-
-    if (m_waylandWindowId != newId) {
-        if (!m_waylandWindowId.isNull()) {
-            m_corona->wm()->unregisterIgnoredWindow(m_waylandWindowId);
-        }
-
-        m_waylandWindowId = newId;
-        m_corona->wm()->registerIgnoredWindow(m_waylandWindowId);
-    }
 }
 
 Plasma::FrameSvg::EnabledBorders SubConfigView::enabledBorders() const
